@@ -47,7 +47,7 @@ const getUsersForSidebar = async (req, res) => {
 const getMessages = async (req, res) => {
     try {
         //1. Extract id & rename it selectedUserId
-        const {id: selectedUserId} = req.params.id
+        const selectedUserId = req.params.id;
         const myId = req.user._id
 
         const messages = await Message.find({
@@ -55,7 +55,8 @@ const getMessages = async (req, res) => {
                 {senderId: myId, receiverId: selectedUserId},
                 {senderId: selectedUserId, receiverId: myId}
             ]
-        })
+        }).sort({createdAt: 1});
+
         // marks msg as seen in db
         await Message.updateMany(
             {senderId: selectedUserId, receiverId: myId},
@@ -95,7 +96,7 @@ const markMessageAsSeen = async (req, res) => {
 }
 
 // Send message to selected User
-const sendMessage = async () => {
+const sendMessage = async (req, res) => {
     try {
         //1. get the data from sender
         const { text, image} = req.body;

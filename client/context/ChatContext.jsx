@@ -8,7 +8,7 @@ export const ChatProvider = ({children}) => {
 
     const [message, setMessage] = useState([])
     const [users, setUsers] = useState([])
-    const [selectedUser, setSelectedUsers] = useState(null)
+    const [selectedUser, setSelectedUser] = useState(null)
     const [unseenMessage, setUnseenMessage] = useState({})
 
     const {socket, axios} = useContext(AuthContext)
@@ -20,7 +20,7 @@ export const ChatProvider = ({children}) => {
             const { data } = await axios.get("/api/messages/users")
             if(data.success) {
                 setUsers(data.users)
-                setUnseenMessage(data.unseenMessage)
+                setUnseenMessage(data.unseenMessage || {})
             }
         } catch (error) {
             toast.error(error.message)
@@ -32,7 +32,8 @@ export const ChatProvider = ({children}) => {
         try {
             const { data } = await axios.get(`/api/messages/${userId}`)
             if(data.success) {
-                setMessage(data.message)
+                console.log("Messages API response:", data);
+                setMessage(data.message || [])
             }
         } catch (error) {
             toast.error(error.message)
@@ -42,7 +43,7 @@ export const ChatProvider = ({children}) => {
     // Function to send message to selected user
     const sendMessage = async (messageData) => {
         try {
-            const {data} = await axios.post(`/api/message/send/${selectedUser._id}`, messageData);
+            const {data} = await axios.post(`/api/messages/send/${selectedUser._id}`, messageData);
 
             if(data.success) {
                 setMessage((prevMessage) => [...prevMessage, data.newMessage])
@@ -66,8 +67,10 @@ export const ChatProvider = ({children}) => {
                 await axios.put(`/api/messages/mark/${newMessage._id}`);
 
             } else {
-                setUnseenMessage((prevUnsenMessages) => ({
-                    ...prevUnsenMessages, [newMessage.senderId] : prevUnsenMessages[newMessage.senderId] ? prevUnsenMessages[newMessage.senderId]+1 : 1
+                setUnseenMessage((prev) => ({
+                    ...(prev || {}), 
+                    [newMessage?.senderId] : 
+                    (prev?.[newMessage?.senderId] || 0) + 1 
                 }))
             }
         })
@@ -79,6 +82,13 @@ export const ChatProvider = ({children}) => {
             socket.off("newMessage");
         }
     }
+
+
+    // Fetch messages when user is selected
+    useEffect(() => {
+        if (!selectedUser) return;
+        getMessage(selectedUser._id);
+    }, [selectedUser]);
 
 
     useEffect(() => {
@@ -93,9 +103,11 @@ export const ChatProvider = ({children}) => {
         message,
         users,
         selectedUser,
+        getUsers,
+        getMessage,
         setMessage,
         sendMessage,
-        setSelectedUsers,
+        setSelectedUser,
         unseenMessage,
         setUnseenMessage,
     }
